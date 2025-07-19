@@ -1,0 +1,275 @@
+
+Console Logo
+
+
+Lyria 2 for Music Generation
+
+Lyria 2 for Music Generation
+Lyria 2 is a latent text-to-audio diffusion model capable of generating high-quality instrumental music from text input.
+Overview
+Use cases
+Documentation
+Overview
+
+Lyria 2 is Google Cloud's latest high-quality audio generation model, capable of creating diverse soundscapes and musical pieces from text prompts. This model is powered by a new foundation model developed in partnership with Google DeepMind. It can generate instrumental music from a text prompt.
+Use cases
+
+Text-to-music generation: Generate instrumental audio content based on text prompts.
+Negative prompting: Guide the model to avoid certain elements in the generated music output.
+Reproducibility: Use a seed for consistent generation outputs for the same prompt and parameters.
+Multiple samples: Generate multiple audio samples for a given prompt.
+Documentation
+
+Get started
+
+You can use Vertex AI's Generative AI Studio to experiment with the Lyria 2 model in the Google Cloud console. Alternatively, you can use the Lyria 2 API. Below is an example of how to use the musicgen_predict function in Python to generate music:
+
+from typing import Dictfrom google.cloud import aiplatformfrom google.protobuf import json_formatfrom google.protobuf.struct_pb2 import Valueimport base64from google.cloud import aiplatformfrom IPython.display import Audio, display, HTML, Javascriptimport waveimport iodef musicgen_predict(    instance_dict: Dict,    location: str = "us-central1",    api_endpoint: str= "aiplatform.googleapis.com",    publisher_endpoint: str = "publishers/google/models/lyria-002",):    # The AI Platform services require regional API endpoints.    # However lyria-002 makes no regionalization guarantees.    client_options = {"api_endpoint": api_endpoint}    # Initialize client that will be used to create and send requests.    # This client only needs to be created once, and can be reused for multiple requests.    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options)    instance = json_format.ParseDict(instance_dict, Value())    instances = [instance]    parameters_dict = {}    parameters = json_format.ParseDict(parameters_dict, Value())    endpoint_path = "projects/{project}/locations/{location}/{publisher_endpoint}".format(            project=PROJECT_ID,            location=location,            publisher_endpoint=publisher_endpoint    )    print(endpoint_path)    response = client.predict(        endpoint=endpoint_path, instances=instances, parameters=parameters    )    predictions = response.predictions    print("Returned ", len(predictions), " samples")    return predictions# Example usage:# preds = musicgen_predict({"prompt": "happy music, like a warm summer day",})# For more options, see the code examples below.
+
+Model Input and Output
+
+Input: The model takes a text prompt (string) as input for generating audio. Optional parameters include:
+
+negative_prompt: A string description of what to exclude from the generated audio.
+seed: An integer for deterministic generation.
+sample_count: An integer specifying the number of audio samples to generate.
+Output: The model outputs WAV audio at a 48kHz sample rate. The audio content is instrumental only.
+
+Code Samples
+
+Basic Text-to-Music Generation
+
+preds = musicgen_predict({"prompt": "happy music, like a warm summer day",})# Listen to all samplesfor pred in preds:  bytes_b64 = dict(pred)['bytesBase64Encoded']  decoded_audio_data = base64.b64decode(bytes_b64)  with wave.open(io.BytesIO(decoded_audio_data), 'rb') as wf:      sample_rate = wf.getframerate()      num_channels = wf.getnchannels()  audio = Audio(decoded_audio_data, rate=48000, autoplay=False)  display(audio)
+
+Text-to-Music Generation with Negative Prompt and Seed
+
+preds = musicgen_predict({"prompt": "happy piano", "negative_prompt": "edm", "seed":42})
+
+Text-to-Music Generation with Multiple Samples
+
+preds = musicgen_predict({"prompt": "a warm summer day", "negative_prompt": "",  "sample_count":4})
+
+Note: seed and sample_count cannot be used at the same time in the same request.
+
+Best practices and limitations
+
+Generation times: Generation times vary, typically between 10 to 20 seconds. Requests may be queued during peak usage.
+Region: Lyria 2 is only offered globally.
+Output Length: The generated audio content has a length of 30 seconds.
+Safety filters: Content safety filters are applied to prevent the input and generation of harmful or inappropriate content. Prompts might be blocked if they trigger safety filters; consider rewriting the prompt.
+Watermarking: SynthID watermarking is used.
+Production Use: Lyria 2 is available in production.
+Versions
+
+Resource ID	Release date	Release stage	Description
+lyria-002	2025-05-20	Public GA	Initial release of Lyria 2, supporting text-to-music generation with optional negative prompting, seeding, and multiple samples.
+Links
+
+Google Cloud Generative AI Pricing
+Additional Terms for Generative AI Preview Products
+Model ID
+publishers/google/models/lyria-002 
+Version name
+google/lyria-002 
+Tags
+Task
+
+
+Console Logo
+
+
+Dia-1.6B
+
+Dia-1.6B
+Compact text-to-speech model generating realistic dialogue with emotion control.
+Overview
+Use cases
+Documentation
+Pricing
+Overview
+
+Dia-1.6B is a 1.6 billion parameter text-to-speech model developed by Nari Labs. It generates ultra-realistic dialogue directly from a transcript and can condition the output on audio, allowing for control over emotion and tone. Dia-1.6B is also capable of producing nonverbal communications, such as laughter, coughing, and clearing of the throat. Currently, the model supports English language generation only.
+Use cases
+
+Text-to-speech generation: the model generates audio dialogues from input text prompts.
+Documentation
+
+Features
+
+Dialogue generation: The model generates dialogue via [S1] and [S2] tags.
+
+Example prompt:
+
+[S1] Dia is an open weights text to dialogue model. [S2] You get full control over scripts and voices. [S1] Wow. Amazing. (laughs)
+
+Non-verbal audio generation: the model generates non-verbal audio based on tags. The following tags will be recognized:
+
+(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings),(mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales),(applause), (burps), (humming), (sneezes), (chuckle), (whistles).
+
+Voice cloning: You can upload the audio you want to clone and provide its transcript. The model will then generate speech using the voice from the input audio.
+
+Example deployment (Python)
+
+Install the Vertex AI SDK: Open a terminal window and enter the command below. You can also install it in a virtualenv
+
+pip install --upgrade google-cloud-aiplatformgcloud auth application-default login
+
+Use the following code in your application to deploy this model.
+
+import vertexaifrom vertexai import model_gardenvertexai.init(project=&lt;YOUR_PROJECT_ID&gt;, location="us-east4")model = model_garden.OpenModel("nari-labs/dia-1.6b@dia-1.6b")endpoint = model.deploy()
+
+Example online inference (Python)
+
+Run text-to-speech inference once deployment completes.
+
+import base64instances = [{    "text": (        "[S1] Dia is an open weights text to dialogue model. [S2] You get full"        " control over scripts and voices. [S1] Wow. Amazing. (laughs) [S2] Try"        " it now on Git hub or Hugging Face."    )}]parameters = {    "temperature": 1.3,    "top_p": 0.95,    "config_scale": 0.3,}response = endpoint.predict(instances=instances, parameters=parameters)audio_bytes = base64.b64decode(response.predictions[0]["audio"])
+
+Run text-to-speech inference with voice cloning.
+
+import base64instances = [{    "text": (        "[S1] Dia is an open weights text to dialogue model. [S2] You get full"        " control over scripts and voices. [S1] Wow. Amazing. (laughs) [S2] Try"        " it now on Git hub or Hugging Face."    ),    "clone_from_audio": "gs://bucket/your_audio.wav",    "clone_from_text": "text transcript of the audio you provided",}]parameters = {    "temperature": 1.3,    "top_p": 0.95,    "config_scale": 0.3,}response = endpoint.predict(instances=instances, parameters=parameters)audio_bytes = base64.b64decode(response.predictions[0]["audio"])
+
+Versions
+
+Resource ID	Release date	Release stage	Description
+nari-labs/Dia-1.6B	2025-04-18	GA	Dia-1.6B model
+Links
+
+Dia repository on GitHub
+Dia-1.6B on Hugging Face
+Endpoints
+Region
+us-central1 (Iowa)
+No endpoints found for selected region.
+Model ID
+publishers/nari-labs/models/dia-1.6b
+Version name
+dia-1.6b 
+Tags
+Task
+
+Skill level
+
+Pricing
+
+Colab Enterprise pricing
+Vertex AI custom training and prediction pricing
+
+
+Console Logo
+
+
+Dia-1.6B
+
+Dia-1.6B
+Compact text-to-speech model generating realistic dialogue with emotion control.
+Overview
+Use cases
+Documentation
+Pricing
+Overview
+
+Dia-1.6B is a 1.6 billion parameter text-to-speech model developed by Nari Labs. It generates ultra-realistic dialogue directly from a transcript and can condition the output on audio, allowing for control over emotion and tone. Dia-1.6B is also capable of producing nonverbal communications, such as laughter, coughing, and clearing of the throat. Currently, the model supports English language generation only.
+Use cases
+
+Text-to-speech generation: the model generates audio dialogues from input text prompts.
+Documentation
+
+Features
+
+Dialogue generation: The model generates dialogue via [S1] and [S2] tags.
+
+Example prompt:
+
+[S1] Dia is an open weights text to dialogue model. [S2] You get full control over scripts and voices. [S1] Wow. Amazing. (laughs)
+
+Non-verbal audio generation: the model generates non-verbal audio based on tags. The following tags will be recognized:
+
+(laughs), (clears throat), (sighs), (gasps), (coughs), (singing), (sings),(mumbles), (beep), (groans), (sniffs), (claps), (screams), (inhales), (exhales),(applause), (burps), (humming), (sneezes), (chuckle), (whistles).
+
+Voice cloning: You can upload the audio you want to clone and provide its transcript. The model will then generate speech using the voice from the input audio.
+
+Example deployment (Python)
+
+Install the Vertex AI SDK: Open a terminal window and enter the command below. You can also install it in a virtualenv
+
+pip install --upgrade google-cloud-aiplatformgcloud auth application-default login
+
+Use the following code in your application to deploy this model.
+
+import vertexaifrom vertexai import model_gardenvertexai.init(project=&lt;YOUR_PROJECT_ID&gt;, location="us-east4")model = model_garden.OpenModel("nari-labs/dia-1.6b@dia-1.6b")endpoint = model.deploy()
+
+Example online inference (Python)
+
+Run text-to-speech inference once deployment completes.
+
+import base64instances = [{    "text": (        "[S1] Dia is an open weights text to dialogue model. [S2] You get full"        " control over scripts and voices. [S1] Wow. Amazing. (laughs) [S2] Try"        " it now on Git hub or Hugging Face."    )}]parameters = {    "temperature": 1.3,    "top_p": 0.95,    "config_scale": 0.3,}response = endpoint.predict(instances=instances, parameters=parameters)audio_bytes = base64.b64decode(response.predictions[0]["audio"])
+
+Run text-to-speech inference with voice cloning.
+
+import base64instances = [{    "text": (        "[S1] Dia is an open weights text to dialogue model. [S2] You get full"        " control over scripts and voices. [S1] Wow. Amazing. (laughs) [S2] Try"        " it now on Git hub or Hugging Face."    ),    "clone_from_audio": "gs://bucket/your_audio.wav",    "clone_from_text": "text transcript of the audio you provided",}]parameters = {    "temperature": 1.3,    "top_p": 0.95,    "config_scale": 0.3,}response = endpoint.predict(instances=instances, parameters=parameters)audio_bytes = base64.b64decode(response.predictions[0]["audio"])
+
+Versions
+
+Resource ID	Release date	Release stage	Description
+nari-labs/Dia-1.6B	2025-04-18	GA	Dia-1.6B model
+Links
+
+Dia repository on GitHub
+Dia-1.6B on Hugging Face
+Endpoints
+Region
+us-central1 (Iowa)
+No endpoints found for selected region.
+Model ID
+publishers/nari-labs/models/dia-1.6b
+Version name
+dia-1.6b 
+Tags
+Task
+
+Skill level
+
+Pricing
+
+Colab Enterprise pricing
+Vertex AI custom training and prediction pricing
+
+
+
+
+
+Part 1 (0:00 - 0:30) - The Lonely Morning
+(Corresponds to Verse 1)
+
+Prompt:
+An intimate, sparse, and melancholic modern acoustic pop track intro in the style of famous artist. Features a delicate, repetitive finger-picked acoustic guitar pattern and a quiet, almost conversational male vocal. The mood is hollow and lonely, like the quiet of a house where no one is talking. End on a sustained, unresolved chord, leaving space for the next section.
+
+Part 2 (0:30 - 1:00) - The Frantic Escape
+(Corresponds to Chorus 1)
+
+Prompt:
+A continuation of an famous artist style acoustic pop track, making an abrupt shift to high energy. The music becomes a driving, fast, and percussive acoustic guitar strum. The male vocal is more rhythmic and strained, conveying anxiety and a sense of being overwhelmed by a digital rush. Keep it purely acoustic and rhythmic. It should end on a high-energy note that feels like it could suddenly cut out.
+
+Part 3 (1:00 - 1:30) - The Digital Disconnect
+(Corresponds to Verse 2)
+
+Prompt:
+Continuing an famous artist style acoustic track. The music should drop back down in energy, returning to a sparse, finger-picked acoustic guitar pattern similar to the first verse, but with a more restless and tense feeling. The male vocal is quiet again, but with an underlying sense of sadness and isolation. End quietly, creating a moment of anticipation.
+
+Part 4 (1:30 - 2:00) - The Intervention & Hope
+(Corresponds to The Bridge)
+
+Prompt:
+A dramatic turning point in a modern acoustic pop song. Starts with 2 seconds of complete silence, then introduces a single, clear foot-stomp and hand-clap beat. A clean acoustic guitar plays a simple, warm, and hopeful major-key chord progression. A vulnerable male vocal enters, slowly building in confidence. The feeling is like a sunrise after a long night. Build intensity towards the end.
+
+Part 5 (2:00 - 2:30) - Joyful Connection
+(Corresponds to the Final Chorus)
+
+Prompt:
+Building directly from the previous hopeful section, this is the triumphant, anthemic peak of a modern acoustic pop song. The energy is joyous and communal. Features powerful, full-bodied acoustic strumming, a driving stomp-clap beat, and uplifting layered group harmonies singing "woah-ohs" in the background. The lead male vocal is powerful and happy. This is the sound of a found family celebrating.
+
+Part 6 (2:30 - 3:00) - The Resolution
+(Corresponds to The Outro)
+
+Prompt:
+The celebratory final section of an famous artist style acoustic pop anthem. Continues the high energy and communal feeling with a full acoustic guitar, group harmonies, and a stomp-clap beat. Over the final 15 seconds, the song should resolve and slow down, ending on one final, warm, ringing acoustic chord that slowly fades to complete silence.
